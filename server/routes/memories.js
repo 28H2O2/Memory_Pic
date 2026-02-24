@@ -15,6 +15,7 @@ const fs = require('fs');
 const sharp = require('sharp');
 const db = require('../db');
 const { authMiddleware } = require('../middleware/auth');
+const { reverseGeocode } = require('../utils/geocode');
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -73,34 +74,43 @@ function checkMembership(albumId, userId) {
   ).get(albumId, userId);
 }
 
-// 从照片文件提取 EXIF 拍摄日期
-function extractExifDate(filePath) {
+// 从照片文件提取 EXIF 信息（日期 + GPS 位置）
+function extractExifInfo(filePath) {
+  const info = { date: null, location: null };
   try {
     const buffer = fs.readFileSync(filePath);
-    // 检查是否为 JPEG（前两个字节是 0xFF 0xD8）
     if (buffer.length < 2 || buffer[0] !== 0xFF || buffer[1] !== 0xD8) {
-      return null;
+      return info;
     }
     const ExifParser = require('exif-parser');
     const parser = ExifParser.create(buffer);
     parser.enableSimpleValues(true);
     const result = parser.parse();
-    // EXIF 日期字段：DateTimeOriginal > CreateDate > ModifyDate
+
+    // 提取拍摄日期
     const timestamp = result.tags.DateTimeOriginal
       || result.tags.CreateDate
       || result.tags.ModifyDate;
     if (timestamp) {
-      // exif-parser 返回 Unix 时间戳（秒）
       const d = new Date(timestamp * 1000);
       if (!isNaN(d.getTime()) && d.getFullYear() > 1970) {
-        return d.toISOString().split('T')[0]; // YYYY-MM-DD
+        info.date = d.toISOString().split('T')[0];
+      }
+    }
+
+    // 提取 GPS 坐标并反向地理编码
+    const lat = result.tags.GPSLatitude;
+    const lng = result.tags.GPSLongitude;
+    if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+      const city = reverseGeocode(lat, lng);
+      if (city) {
+        info.location = city;
       }
     }
   } catch (e) {
-    // EXIF 解析失败不阻塞流程
     console.warn('EXIF 解析失败:', e.message);
   }
-  return null;
+  return info;
 }
 
 // 生成缩略图，返回 URL
@@ -162,9 +172,9 @@ router.post('/', upload.fields([
         return res.status(400).json({ error: '至少上传一张照片、一段语音或一段文字' });
       }
       const result = db.prepare(`
-        INSERT INTO memories (album_id, user_id, photo_url, thumbnail_url, audio_url, note, memory_date)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(album_id, req.user.id, null, null, audioUrl, note || '', memory_date || null);
+        INSERT INTO memories (album_id, user_id, photo_url, thumbnail_url, audio_url, note, location, memory_date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(album_id, req.user.id, null, null, audioUrl, note || '', null, memory_date || null);
 
       const memory = db.prepare(`
         SELECT m.*, u.nickname as author_name
@@ -179,18 +189,19 @@ router.post('/', upload.fields([
         const photoUrl = `/uploads/photos/${photoFile.filename}`;
         const thumbnailUrl = await generateThumbnail(photoFile);
 
-        // 尝试从 EXIF 读取拍摄日期
-        const exifDate = extractExifDate(photoFile.path);
-        const finalDate = memory_date || exifDate || null;
+        // 从 EXIF 读取拍摄日期和 GPS 位置
+        const exifInfo = extractExifInfo(photoFile.path);
+        const finalDate = memory_date || exifInfo.date || null;
+        const location = exifInfo.location || null;
 
         // 只有第一张照片带文字和录音
         const memNote = (i === 0) ? (note || '') : '';
         const memAudio = (i === 0) ? audioUrl : null;
 
         const result = db.prepare(`
-          INSERT INTO memories (album_id, user_id, photo_url, thumbnail_url, audio_url, note, memory_date)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `).run(album_id, req.user.id, photoUrl, thumbnailUrl, memAudio, memNote, finalDate);
+          INSERT INTO memories (album_id, user_id, photo_url, thumbnail_url, audio_url, note, location, memory_date)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(album_id, req.user.id, photoUrl, thumbnailUrl, memAudio, memNote, location, finalDate);
 
         const memory = db.prepare(`
           SELECT m.*, u.nickname as author_name

@@ -314,6 +314,11 @@ export default function MemoryCard({ memory, onDelete, onUpdate, index }) {
               }}>
                 {memory.author_name}
               </span>
+              {memory.location && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                  📍{memory.location}
+                </span>
+              )}
               <span>{formatDate(memory.memory_date || memory.created_at)}</span>
             </div>
             <div style={{ display: 'flex', gap: '4px' }}>

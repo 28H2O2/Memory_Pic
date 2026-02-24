@@ -64,6 +64,7 @@ db.exec(`
     thumbnail_url TEXT DEFAULT NULL,
     audio_url TEXT DEFAULT NULL,
     note TEXT DEFAULT '',
+    location TEXT DEFAULT NULL,
     memory_date DATE DEFAULT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
@@ -75,5 +76,17 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_album_members_album ON album_members(album_id);
   CREATE INDEX IF NOT EXISTS idx_album_members_user ON album_members(user_id);
 `);
+
+// 数据库迁移：为已有表添加新字段
+try {
+  const columns = db.prepare("PRAGMA table_info(memories)").all();
+  const hasLocation = columns.some(c => c.name === 'location');
+  if (!hasLocation) {
+    db.exec("ALTER TABLE memories ADD COLUMN location TEXT DEFAULT NULL");
+    console.log('📦 数据库迁移：已添加 location 字段');
+  }
+} catch (e) {
+  // 忽略迁移错误
+}
 
 module.exports = db;
