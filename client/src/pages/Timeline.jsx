@@ -11,11 +11,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
-import { api, getUser } from '../utils/api';
+import { api, getUser, API_BASE } from '../utils/api';
 import { showToast } from '../utils/toast';
 import MemoryCard from '../components/MemoryCard';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const SOCKET_URL = API_BASE;
 
 export default function Timeline() {
   const { id: albumId } = useParams();

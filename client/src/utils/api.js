@@ -8,7 +8,25 @@
  * 最后修改：2026-02-25
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+function resolveApiBase() {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+
+  if (typeof window !== 'undefined') {
+    const { protocol, hostname, port, origin } = window.location;
+    // Vite 本地开发页默认走 5173，需要请求本地后端 3001
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || port === '5173') {
+      return `${protocol}//${hostname}:3001`;
+    }
+    // 线上默认同源，避免错误回退到 localhost
+    return origin;
+  }
+
+  return 'http://localhost:3001';
+}
+
+export const API_BASE = resolveApiBase();
 
 // Token 管理
 export function getToken() {
