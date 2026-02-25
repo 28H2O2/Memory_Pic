@@ -418,6 +418,126 @@ textarea.input {
   color: var(--text-primary);
 }
 
+/* ============ 时间线 ============ */
+.timeline-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+}
+
+.timeline-overview-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.timeline-overview-label {
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.timeline-range {
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.timeline-list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.timeline-list::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: linear-gradient(180deg, rgba(232, 101, 122, 0.55), rgba(124, 92, 224, 0.25));
+  border-radius: 2px;
+}
+
+.timeline-group {
+  position: relative;
+  padding-left: 24px;
+}
+
+.timeline-group-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.timeline-group-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  box-shadow: 0 0 0 4px rgba(232, 101, 122, 0.15);
+  flex-shrink: 0;
+}
+
+.timeline-group-header h3 {
+  font-size: 0.98rem;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.timeline-group-header p {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.timeline-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.timeline-entry {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.timeline-time {
+  padding-top: 10px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 380px) {
+  .timeline-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .timeline-entry {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .timeline-time {
+    padding-top: 0;
+    padding-left: 2px;
+  }
+}
+
 .empty-state p {
   color: var(--text-secondary);
   font-size: 0.9rem;

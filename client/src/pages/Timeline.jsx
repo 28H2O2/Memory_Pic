@@ -29,6 +29,55 @@ export default function Timeline() {
   const navigate = useNavigate();
   const user = getUser();
 
+  const getMemoryDate = (memory) => {
+    const d = new Date(memory.memory_date || memory.created_at);
+    return Number.isNaN(d.getTime()) ? new Date(0) : d;
+  };
+
+  const formatDayLabel = (date) => {
+    const now = new Date();
+    const dateStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const nowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diffDays = Math.floor((nowStart - dateStart) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return '今天';
+    if (diffDays === 1) return '昨天';
+
+    return date.toLocaleDateString('zh-CN', {
+      month: 'long',
+      day: 'numeric',
+      weekday: 'short'
+    });
+  };
+
+  const formatTimeLabel = (date) => {
+    return date.toLocaleTimeString('zh-CN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  };
+
+  const sortedMemories = [...memories].sort((a, b) => getMemoryDate(b) - getMemoryDate(a));
+
+  const groups = sortedMemories.reduce((acc, memory) => {
+    const d = getMemoryDate(memory);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const existed = acc.find(g => g.key === key);
+    if (existed) {
+      existed.items.push(memory);
+    } else {
+      acc.push({ key, date: d, items: [memory] });
+    }
+    return acc;
+  }, []);
+
+  const memoryRange = sortedMemories.length > 1
+    ? `${getMemoryDate(sortedMemories[sortedMemories.length - 1]).toLocaleDateString('zh-CN')} - ${getMemoryDate(sortedMemories[0]).toLocaleDateString('zh-CN')}`
+    : sortedMemories.length === 1
+      ? getMemoryDate(sortedMemories[0]).toLocaleDateString('zh-CN')
+      : '';
+
   useEffect(() => {
     loadData();
     connectSocket();
@@ -174,6 +223,24 @@ export default function Timeline() {
         </span>
       </div>
 
+      {/* 时间线概览 */}
+      {memories.length > 0 && (
+        <div className="timeline-overview animate-in" style={{ animationDelay: '0.08s' }}>
+          <div>
+            <div className="timeline-overview-value">{memories.length}</div>
+            <div className="timeline-overview-label">条记忆</div>
+          </div>
+          <div>
+            <div className="timeline-overview-value">{groups.length}</div>
+            <div className="timeline-overview-label">个时间节点</div>
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div className="timeline-overview-value" style={{ fontSize: '0.95rem' }}>时间跨度</div>
+            <div className="timeline-overview-label timeline-range">{memoryRange}</div>
+          </div>
+        </div>
+      )}
+
       {/* 记忆列表 */}
       {memories.length === 0 ? (
         <div className="empty-state animate-in" style={{ animationDelay: '0.1s' }}>
@@ -182,19 +249,40 @@ export default function Timeline() {
           <p>点击右下角的按钮，添加你们的第一条记忆吧</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {memories.map((memory, i) => (
-            <MemoryCard
-              key={memory.id}
-              memory={memory}
-              index={i}
-              onUpdate={handleUpdate}
-              onDelete={
-                (memory.user_id === user?.id || members.find(m => m.id === user?.id)?.role === 'admin')
-                  ? handleDelete
-                  : undefined
-              }
-            />
+        <div className="timeline-list">
+          {groups.map((group, groupIndex) => (
+            <section
+              key={group.key}
+              className="timeline-group animate-in"
+              style={{ animationDelay: `${0.1 + groupIndex * 0.05}s` }}
+            >
+              <div className="timeline-group-header">
+                <span className="timeline-group-dot" />
+                <div>
+                  <h3>{formatDayLabel(group.date)}</h3>
+                  <p>{group.items.length} 条记忆</p>
+                </div>
+              </div>
+
+              <div className="timeline-group-items">
+                {group.items.map((memory, i) => (
+                  <div key={memory.id} className="timeline-entry">
+                    <div className="timeline-time">{formatTimeLabel(getMemoryDate(memory))}</div>
+                    <MemoryCard
+                      memory={memory}
+                      index={i}
+                      timelineMode
+                      onUpdate={handleUpdate}
+                      onDelete={
+                        (memory.user_id === user?.id || members.find(m => m.id === user?.id)?.role === 'admin')
+                          ? handleDelete
+                          : undefined
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       )}

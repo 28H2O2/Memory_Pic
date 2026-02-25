@@ -13,7 +13,7 @@ import { getFileUrl, api } from '../utils/api';
 import { showToast } from '../utils/toast';
 import AudioRecorder from './AudioRecorder';
 
-export default function MemoryCard({ memory, onDelete, onUpdate, index }) {
+export default function MemoryCard({ memory, onDelete, onUpdate, index, timelineMode = false }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [showFull, setShowFull] = useState(false);
@@ -314,12 +314,12 @@ export default function MemoryCard({ memory, onDelete, onUpdate, index }) {
               }}>
                 {memory.author_name}
               </span>
-              {memory.location && (
+              {!timelineMode && memory.location && (
                 <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
                   📍{memory.location}
                 </span>
               )}
-              <span>{formatDate(memory.memory_date || memory.created_at)}</span>
+              {!timelineMode && <span>{formatDate(memory.memory_date || memory.created_at)}</span>}
             </div>
             <div style={{ display: 'flex', gap: '4px' }}>
               {/* 添加录音按钮（无录音时显示） */}
