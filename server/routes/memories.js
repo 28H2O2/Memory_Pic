@@ -118,6 +118,8 @@ async function generateThumbnail(photoFile) {
   try {
     const thumbFilename = `thumb_${photoFile.filename.replace(path.extname(photoFile.filename), '.webp')}`;
     await sharp(photoFile.path)
+      // 按 EXIF Orientation 自动旋转，避免手机拍照缩略图方向错误
+      .rotate()
       .resize(400, 400, { fit: 'cover' })
       .webp({ quality: 80 })
       .toFile(path.join(thumbsDir, thumbFilename));
